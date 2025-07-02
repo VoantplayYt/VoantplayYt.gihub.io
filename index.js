@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import { Client } from "bloxy";
-
+// How
 dotenv.config();
 
 const app = express();
