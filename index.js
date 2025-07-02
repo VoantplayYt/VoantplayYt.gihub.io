@@ -1,71 +1,64 @@
-import express from "express";
-import fetch from "node-fetch";
+const express = require("express");
+const rbx = require("noblox.js");
+require("dotenv").config();
 
 const app = express();
-app.use(express.json());
+app.use(express.static("public"));
 
-const API_KEY = process.env.API_KEY;
-const GROUP_ID = Number(process.env.GROUP_ID);
-const TARGET_ROLE_NAME = process.env.TARGET_ROLE_NAME;
-const SECRET_KEY = process.env.SECRET_KEY;
+const cookie = process.env.ROBLOX_COOKIE;
+const groupId = parseInt(process.env.GROUP_ID);
 
-async function getRoles() {
-  const res = await fetch(`https://apis.roblox.com/groups/v1/groups/${GROUP_ID}/roles`, {
-    headers: { "x-api-key": API_KEY },
-  });
-  if (!res.ok) throw new Error("Failed to fetch roles");
-  const data = await res.json();
-  return data.roles;
-}
+const AUTH_USER = process.env.AUTH_USER;
+const AUTH_PASS = process.env.AUTH_PASS;
 
-async function getMembershipId(userId) {
-  const res = await fetch(`https://apis.roblox.com/groups/v1/groups/${GROUP_ID}/users/${userId}`, {
-    headers: { "x-api-key": API_KEY },
-  });
-  if (!res.ok) throw new Error("Failed to fetch membership");
-  const data = await res.json();
-  return data.groupMembership ? data.groupMembership.id : null;
-}
-
-async function promoteUser(membershipId, roleId) {
-  const url = `https://apis.roblox.com/groups/v1/groups/${GROUP_ID}/memberships/${membershipId}`;
-  const res = await fetch(url, {
-    method: "PATCH",
-    headers: {
-      "x-api-key": API_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ roleId }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to promote: ${text}`);
-  }
-  return await res.json();
-}
-
-app.post("/promote", async (req, res) => {
+async function startApp() {
   try {
-    const auth = req.headers.authorization;
-    if (auth !== SECRET_KEY) return res.status(403).send("Forbidden");
+    await rbx.setCookie(cookie);
+    const currentUser = await rbx.getCurrentUser();
+    console.log(`Logged in as ${currentUser.UserName}`);
+  } catch (err) {
+    console.error("Failed to start app:", err);
+  }
+}
+startApp();
 
-    const { userId } = req.body;
-    if (!userId) return res.status(400).send("Missing userId");
+function basicAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
 
-    const membershipId = await getMembershipId(userId);
-    if (!membershipId) return res.status(404).send("User not in group");
+  if (!authHeader) {
+    res.setHeader('WWW-Authenticate', 'Basic');
+    return res.status(401).send("Authentication required.");
+  }
 
-    const roles = await getRoles();
-    const targetRole = roles.find(r => r.name === TARGET_ROLE_NAME);
-    if (!targetRole) return res.status(404).send("Target role not found");
+  const base64Credentials = authHeader.split(' ')[1];
+  const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+  const [username, password] = credentials.split(':');
 
-    await promoteUser(membershipId, targetRole.id);
-    res.send(`User ${userId} promoted to role '${TARGET_ROLE_NAME}'`);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error promoting user");
+  if (username === AUTH_USER && password === AUTH_PASS) {
+    next();
+  } else {
+    res.setHeader('WWW-Authenticate', 'Basic');
+    return res.status(401).send("Access denied.");
+  }
+}
+
+app.get("/ranker", basicAuth, async (req, res) => {
+  const userId = parseInt(req.query.userid);
+  const newRank = 100;
+
+  if (!userId || !newRank) {
+    return res.status(400).json({ error: "Missing or invalid parameters" });
+  }
+
+  try {
+    await rbx.setRank(groupId, userId, newRank);
+    res.json({ message: `User ${userId} promoted to rank ${newRank}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to rank user" });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+const listener = app.listen(process.env.PORT || 10000, () => {
+  console.log("Your app is listening on port " + listener.address().port);
+});
