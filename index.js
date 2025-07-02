@@ -1,5 +1,5 @@
 import express from "express";
-import rbx from "noblox.js";
+import { Client, LogLevel } from "bloxy";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -8,16 +8,26 @@ const app = express();
 app.use(express.json());
 
 const cookie = process.env.ROBLOX_COOKIE;
-const groupId = process.env.GROUP_ID;
+const groupId = parseInt(process.env.GROUP_ID);
 
 const AUTH_USER = process.env.AUTH_USER;
 const AUTH_PASS = process.env.AUTH_PASS;
 
+const client = new Client({
+  credentials: {
+    cookie: cookie
+  },
+  settings: {
+    logLevel: LogLevel.Info,
+    prompt: false
+  }
+});
+
 async function startApp() {
   try {
-    await rbx.setCookie(cookie);
-    const currentUser = await rbx.getCurrentUser();
-    console.log(`Logged in as ${currentUser.UserName}`);
+    await client.login();
+    const user = await client.getCurrentUser();
+    console.log(`Logged in as ${user.name}`);
   } catch (err) {
     console.error("Failed to start app:", err);
   }
@@ -53,8 +63,12 @@ app.get("/ranker", basicAuth, async (req, res) => {
   }
 
   try {
-    await rbx.setRank(groupId, userId, newRank);
-    res.json({ message: `User ${userId} promoted to rank ${newRank}` });
+    const group = await client.groups.get(groupId);
+    const user = await client.users.fetch(userId);
+    const member = await group.getMember(user.id);
+    await member.setRank(newRank);
+
+    res.json({ message: `User ${user.name} promoted to rank ${newRank}` });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to rank user" });
