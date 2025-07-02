@@ -27,7 +27,7 @@ async function startApp() {
     });
 
     await client.login();
-    const currentUser = await client.users.getCurrentUser();
+    const currentUser = await client.users.getMe();
     console.log(`Logged in as ${currentUser.name}`);
   } catch (err) {
     console.error("Failed to start app:", err);
