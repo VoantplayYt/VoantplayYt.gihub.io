@@ -1,6 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
-import { Client } from "bloxy";
+import pkg from "bloxy";
+const { Client } = pkg;
+// We Will Try This
 // How
 dotenv.config();
 
