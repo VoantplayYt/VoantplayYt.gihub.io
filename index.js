@@ -4,14 +4,10 @@ import noblox from "noblox.js";
 
 dotenv.config();
 
-console.log(`Config Loaded!`);
-
 const app = express();
 app.use(express.json());
 
 const cookie = process.env.ROBLOX_COOKIE;
-
-console.log(`${cookie}`);
 
 const groupId = parseInt(process.env.GROUP_ID);
 
