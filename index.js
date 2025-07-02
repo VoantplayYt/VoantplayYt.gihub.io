@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 const cookie = process.env.ROBLOX_COOKIE;
-const groupId = parseInt(process.env.GROUP_ID);
+const groupId = process.env.GROUP_ID;
 
 const AUTH_USER = process.env.AUTH_USER;
 const AUTH_PASS = process.env.AUTH_PASS;
