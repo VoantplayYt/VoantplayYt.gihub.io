@@ -3,7 +3,7 @@ const rbx = require("noblox.js");
 require("dotenv").config();
 
 const app = express();
-app.use(express.static("public"));
+app.use(express.json());
 
 const cookie = process.env.ROBLOX_COOKIE;
 const groupId = parseInt(process.env.GROUP_ID);
