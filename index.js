@@ -1,6 +1,8 @@
-const express = require("express");
-const rbx = require("noblox.js");
-require("dotenv").config();
+import express from "express";
+import rbx from "noblox.js";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
 app.use(express.json());
